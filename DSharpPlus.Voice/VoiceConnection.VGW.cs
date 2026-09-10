@@ -154,7 +154,7 @@ partial class VoiceConnection
         }
 
         // we have now received every bit of information necessary to connect to UDP...
-        await this.mediaTransport.ConnectAsync(remoteUdpEndpoint);
+        await this.mediaTransport.SetTargetAsync(remoteUdpEndpoint);
         this.localEndpoint ??= await PerformIPDiscoveryAsync(this.ssrc);
 
         // ... and to select the protocol we want
@@ -182,7 +182,7 @@ partial class VoiceConnection
                 await HandleCloseCodeAsync((VoiceGatewayCloseCode)errorCode);
             }
 
-            if (sessionDescriptionFrame.MessageType != WebSocketMessageType.Text || sessionDescriptionFrame.TryGetMessage(out byte[]? payload))
+            if (sessionDescriptionFrame.MessageType != WebSocketMessageType.Text || !sessionDescriptionFrame.TryGetMessage(out byte[]? payload))
             {
                 // something silly happened
                 continue;

@@ -63,7 +63,7 @@ internal sealed class OggOpusAudioWriter : AudioWriter
         return this.rentedBuffer;
     }
 
-        private void ReturnAndRentBuffer(int size)
+    private void ReturnAndRentBuffer(int size)
     {
         if (this.rentedBuffer is not null)
         {

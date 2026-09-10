@@ -18,7 +18,7 @@ internal class ResampleHelper44KHz : IDisposable
         this.buffer = new(channels * 1764);
     }
 
-    public bool ResampleFrame(ReadOnlySpan<short> buffer44Khz, Span<short> buffer48Khz, out int consumed, out int written)
+    public bool ResampleFrameFrom44KHz(ReadOnlySpan<short> buffer44Khz, Span<short> buffer48Khz, out int consumed, out int written)
     {
         ReadOnlySpan<byte> byteWiseView = MemoryMarshal.Cast<short, byte>(buffer44Khz);
 

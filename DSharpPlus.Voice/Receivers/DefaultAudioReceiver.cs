@@ -148,6 +148,7 @@ public sealed class DefaultAudioReceiver : AudioReceiver
     /// <inheritdoc/>
     protected internal override async Task ProcessUserLeftAsync(ulong id)
     {
+        this.consecutivelyReceivedSilenceFrames.Remove(id, out _);
         this.receivers.Remove(id, out UserAudioReceiver? receiver);
 
         receiver?.Close();

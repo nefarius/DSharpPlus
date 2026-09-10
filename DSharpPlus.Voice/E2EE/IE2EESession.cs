@@ -32,7 +32,7 @@ public interface IE2EESession : IDisposable
     /// </summary>
     /// <param name="unencryptedFrame">The unencrypted frame data.</param>
     /// <param name="encryptedFrame">A buffer for the E2EE-encrypted frame data.</param>
-    /// <returns>The amount of bytes written to <paramref name="encryptedFrame"/>.</returns>
+    /// <returns>A value indicating whether encrypting succeeded.</returns>
     public bool TryEncryptFrame(ReadOnlySpan<byte> unencryptedFrame, ArrayPoolBufferWriter<byte> encryptedFrame);
 
     /// <summary>

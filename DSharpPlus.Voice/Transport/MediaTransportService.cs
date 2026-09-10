@@ -16,7 +16,7 @@ public class MediaTransportService : IMediaTransportService
         => this.udpClient = new();
 
     /// <inheritdoc/>
-    public Task ConnectAsync(IPEndPoint endpoint)
+    public Task SetTargetAsync(IPEndPoint endpoint)
     {
         this.endpoint = endpoint;
         return Task.CompletedTask;

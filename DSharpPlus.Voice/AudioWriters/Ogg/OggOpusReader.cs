@@ -22,6 +22,7 @@ internal sealed class OggOpusReader
 
     private uint currentStreamSerial = 0;
     private bool lastPacketContinuesOnNextPage;
+    private bool lastPageWasOpusTags;
     private ManualResetAccumulatingBuffer packetBuffer = new(1275);
     private TimeSpan remainingPreSkipTime;
 
@@ -42,122 +43,129 @@ internal sealed class OggOpusReader
             this.pageBuffer.Write(data[consumed..], out int consumedOnThisTurn);
             consumed += consumedOnThisTurn;
 
-        ProcessPage:
-
-            bool parsedPageInfo = ValidateAndExtractPageInfo(ref pageInfo);
-
-            if (!parsedPageInfo || this.pageBuffer.WrittenCount < pageInfo.TotalPageLength)
+            while (true)
             {
-                // we need more data
-                continue;
-            }
+                bool parsedPageInfo = ValidateAndExtractPageInfo(ref pageInfo);
 
-            // we have a valid page. try to see whether it's an ID page first
-            if (OggOpusIdentificationHeader.TryParse(this.pageBuffer.WrittenSpan[pageInfo.Body], out OggOpusIdentificationHeader? idHeader))
-            {
-                if (idHeader.MappingFamily != OggOpusChannelMappingFamily.Basic)
+                if (!parsedPageInfo || this.pageBuffer.WrittenCount < pageInfo.TotalPageLength)
                 {
-                    throw new UnsupportedOggOpusStreamException($"Unsupported channel mapping {idHeader.MappingFamily}, only 0 is supported.");
+                    // we need more data
+                    break;
                 }
 
-                this.logger.LogTrace("Encountered new ogg/opus stream with serial {serial}, switching.", pageInfo.BitstreamSerialNumber);
-
-                this.currentStreamSerial = pageInfo.BitstreamSerialNumber;
-                this.remainingPreSkipTime = TimeSpan.FromSeconds(idHeader.PreSkipSamples / 48000);
-                this.lastPacketContinuesOnNextPage = false;
-
-                if (idHeader.OutputGain != 0)
+                // we have a valid page. try to see whether it's an ID page first
+                if (OggOpusIdentificationHeader.TryParse(this.pageBuffer.WrittenSpan[pageInfo.Body], out OggOpusIdentificationHeader? idHeader))
                 {
-                    this.logger.LogDebug("Encountered an ogg/opus stream with a non-zero output gain field. This will be ignored.");
-                }
+                    this.lastPageWasOpusTags = false;
 
-                SkipPage(pageInfo.TotalPageLength);
-                goto ProcessPage;
-            }
-            // or maybe a comment page?
-            else if (this.pageBuffer.WrittenSpan[pageInfo.Body].StartsWith("OpusTags"u8))
-            {
-                SkipPage(pageInfo.TotalPageLength);
-                goto ProcessPage;
-            }
-            // or its a complete audio page?
-            else if (this.pageBuffer.WrittenCount >= pageInfo.TotalPageLength)
-            {
-                if (!ValidatePage(pageInfo))
-                {
-                    this.logger.LogDebug("Received an ogg page with an invalid checksum. This page will be ignored.");
+                    if (idHeader.MappingFamily != OggOpusChannelMappingFamily.Basic)
+                    {
+                        throw new UnsupportedOggOpusStreamException($"Unsupported channel mapping {idHeader.MappingFamily}, only 0 is supported.");
+                    }
+
+                    this.logger.LogTrace("Encountered new ogg/opus stream with serial {serial}, switching.", pageInfo.BitstreamSerialNumber);
+
+                    this.currentStreamSerial = pageInfo.BitstreamSerialNumber;
+                    this.remainingPreSkipTime = TimeSpan.FromSeconds(idHeader.PreSkipSamples / 48000);
+                    this.lastPacketContinuesOnNextPage = false;
+
+                    if (idHeader.OutputGain != 0)
+                    {
+                        this.logger.LogDebug("Encountered an ogg/opus stream with a non-zero output gain field. This will be ignored.");
+                    }
+
                     SkipPage(pageInfo.TotalPageLength);
-                    goto ProcessPage;
+                    continue;
                 }
-
-                ReadOnlySpan<byte> audio = this.pageBuffer.WrittenSpan[pageInfo.Body];
-                int packetIndex = 0, byteOffset = 0;
-                AudioBufferLease lease;
-
-                if (this.lastPacketContinuesOnNextPage)
+                // or maybe a comment page?
+                else if (this.pageBuffer.WrittenSpan[pageInfo.Body].StartsWith("OpusTags"u8) || (this.lastPageWasOpusTags && pageInfo.Flags.HasFlag(OggHeaderTypeFlags.ContinuedPacket)))
                 {
-                    packetIndex = 1;
-                    byteOffset = pageInfo.PacketLengths[0];
-                    this.packetBuffer.Write(audio[..byteOffset], out _);
-
-                    TimeSpan packetLength = OpusCodec.CalculateOpusPacketLength(this.packetBuffer.WrittenSpan);
-
-                    if (this.remainingPreSkipTime > packetLength)
-                    {
-                        this.remainingPreSkipTime -= packetLength;
-                    }
-                    else
-                    {
-                        this.remainingPreSkipTime = TimeSpan.Zero;
-
-                        lease = AudioBufferManager.Shared.Rent(this.packetBuffer.WrittenCount);
-
-                        this.packetBuffer.WrittenSpan.CopyTo(lease.Buffer);
-                        lease.FrameCount = (int)packetLength.TotalMilliseconds / 20;
-
-                        this.packetWriter.TryWrite(lease);
-                    }
+                    SkipPage(pageInfo.TotalPageLength);
+                    this.lastPageWasOpusTags = true;
+                    continue;
                 }
-
-                for (; packetIndex < pageInfo.PacketLengths.Count; packetIndex++)
+                // or its a complete audio page?
+                else if (this.pageBuffer.WrittenCount >= pageInfo.TotalPageLength)
                 {
-                    if (packetIndex == pageInfo.PacketLengths.Count - 1 && pageInfo.LastPacketContinuesOnNextPage)
+                    this.lastPageWasOpusTags = false;
+
+                    if (!ValidatePage(pageInfo))
                     {
-                        this.packetBuffer.Reset();
-                        this.packetBuffer.Write(audio[byteOffset..], out _);
-                        break;
+                        this.logger.LogDebug("Received an ogg page with an invalid checksum. This page will be ignored.");
+                        SkipPage(pageInfo.TotalPageLength);
+                        continue;
                     }
 
-                    int packetLength = pageInfo.PacketLengths[packetIndex];
-                    ReadOnlySpan<byte> audioPacket = audio[byteOffset..(byteOffset + packetLength)];
+                    ReadOnlySpan<byte> audio = this.pageBuffer.WrittenSpan[pageInfo.Body];
+                    int packetIndex = 0, byteOffset = 0;
+                    AudioBufferLease lease;
 
-                    TimeSpan packetDuration = OpusCodec.CalculateOpusPacketLength(audioPacket);
-
-                    if (this.remainingPreSkipTime > packetDuration)
+                    if (this.lastPacketContinuesOnNextPage)
                     {
-                        this.remainingPreSkipTime -= packetDuration;
+                        packetIndex = 1;
+                        byteOffset = pageInfo.PacketLengths[0];
+                        this.packetBuffer.Write(audio[..byteOffset], out _);
+
+                        TimeSpan packetLength = OpusCodec.CalculateOpusPacketLength(this.packetBuffer.WrittenSpan);
+
+                        if (this.remainingPreSkipTime > packetLength)
+                        {
+                            this.remainingPreSkipTime -= packetLength;
+                        }
+                        else
+                        {
+                            this.remainingPreSkipTime = TimeSpan.Zero;
+
+                            lease = AudioBufferManager.Shared.Rent(this.packetBuffer.WrittenCount);
+
+                            this.packetBuffer.WrittenSpan.CopyTo(lease.Buffer);
+                            lease.FrameCount = (int)packetLength.TotalMilliseconds / 20;
+
+                            this.packetWriter.TryWrite(lease);
+                        }
                     }
-                    else
+
+                    for (; packetIndex < pageInfo.PacketLengths.Count; packetIndex++)
                     {
-                        this.remainingPreSkipTime = TimeSpan.Zero;
+                        if (packetIndex == pageInfo.PacketLengths.Count - 1 && pageInfo.LastPacketContinuesOnNextPage)
+                        {
+                            this.packetBuffer.Reset();
+                            this.packetBuffer.Write(audio[byteOffset..], out _);
+                            break;
+                        }
 
-                        lease = AudioBufferManager.Shared.Rent(pageInfo.PacketLengths[packetIndex]);
+                        int packetLength = pageInfo.PacketLengths[packetIndex];
+                        ReadOnlySpan<byte> audioPacket = audio[byteOffset..(byteOffset + packetLength)];
 
-                        audioPacket.CopyTo(lease.Buffer);
-                        lease.FrameCount = (int)packetDuration.TotalMilliseconds / 20;
+                        TimeSpan packetDuration = OpusCodec.CalculateOpusPacketLength(audioPacket);
 
-                        this.packetWriter.TryWrite(lease);
+                        if (this.remainingPreSkipTime > packetDuration)
+                        {
+                            this.remainingPreSkipTime -= packetDuration;
+                        }
+                        else
+                        {
+                            this.remainingPreSkipTime = TimeSpan.Zero;
+
+                            lease = AudioBufferManager.Shared.Rent(pageInfo.PacketLengths[packetIndex]);
+
+                            audioPacket.CopyTo(lease.Buffer);
+                            lease.FrameCount = (int)packetDuration.TotalMilliseconds / 20;
+
+                            this.packetWriter.TryWrite(lease);
+                        }
+
+                        byteOffset += packetLength;
                     }
 
-                    byteOffset += packetLength;
+                    this.lastPacketContinuesOnNextPage = pageInfo.LastPacketContinuesOnNextPage;
+
+                    SkipPage(pageInfo.TotalPageLength);
+                    continue;
                 }
 
-                this.lastPacketContinuesOnNextPage = pageInfo.LastPacketContinuesOnNextPage;
-
-                SkipPage(pageInfo.TotalPageLength);
-                goto ProcessPage;
+                break;
             }
-            // else: let the loop finish and get more data
         }
 
         bool ValidatePage(OggPageInfo pageInfo)

@@ -18,7 +18,8 @@ public sealed class OpusDecoder : IAudioDecoder
     /// <inheritdoc/>
     public void Decode(ReadOnlySpan<byte> packet, IBufferWriter<short> writer)
     {
-        // GRAVISSIME: do NOT call GetMemory here, it is unsafe given the way the receive stack works
+        // GRAVISSIME: do NOT call GetMemory here, it is unsafe given the way the receive stack works requires punning the underlying type,
+        // which isn't really safely doable with Memory<T>
         Span<short> target = writer.GetSpan(11520);
         int samples = this.decoder.DecodePacket(packet, target);
 

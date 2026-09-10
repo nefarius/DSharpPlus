@@ -65,7 +65,7 @@ services.Configure<VoiceOptions>(config => config.MaxReconnects = 15);
 ```
 ---
 
-With that done, we can connect to a channel using `ConnectAsync`. There are two overloads: one that takes a receiver type and connection options, and one that takes a service scope, user ID and the aforementioned two other parameters. When connecting to a channel acquired from `DiscordClient`, use the first overload; when connecting to a channel acquired by other means, you must use the second overload. Realistically, this means you should rarely to never need the second overload. An `InvalidOperationException` will be thrown if you're using the first overload on a channel it cannot connect to.
+With that done, we can connect to a channel using `ConnectAsync`. There are two overloads: one that takes a receiver type and connection options, and one that takes a service scope, user ID and the aforementioned two other parameters. This second overload is only necessary for channels acquired from a manually created, standalone `DiscordRestApiClient`, for any channel acquired otherwise use the first overload. An `InvalidOperationException` will be thrown if you're using the first overload on a channel it cannot connect to.
 
 `ConnectAsync` will return control and a `VoiceConnection` instance to you as soon as the connection is initialized and ready for sending and receiving audio.
 
@@ -77,8 +77,13 @@ AudioWriters are PipeWriters, which means you can use the `PipeWriter` API to su
 
 When you temporarily want to stop sending audio, use `SignalSilence` on your AudioWriter to communicate this. If you simply stop submitting audio, DSharpPlus will eventually infer that you probably forgot to signal silence, according to `VoiceOptions.SilenceTicksBeforePausingConnection`, to save on bandwidth, but you should ideally always call `SignalSilence` yourself, both for performance and to prevent audio distortion and stuttering at the end.
 
+For further details please see the dedicated article on [sending](sending.md)
+
 ## Receiving Audio
 
 Unlike sending audio, receiving audio requires your intent to be specified upfront. When calling `ConnectAsync`, there is a `Type? receiver` parameter which defaults to `NullAudioReceiver` (thus by default discarding all audio you receive). To receive audio, specify `receiver: typeof(DefaultAudioReceiver)` when connecting.
 
-You can access the configured receiver from `VoiceConnection.Receiver`. The default `NullAudioReceiver` will simply ignore all audio and does not expose anything usable to you, but other receivers may provide features of their own. `DefaultAudioReceiver` provides events for users joining, leaving, starting tos peak and falling silent as well as per-user audio streams with the received audio.
+You can access the configured receiver from `VoiceConnection.Receiver`. The default `NullAudioReceiver` will simply ignore all audio and does not expose anything usable to you, but other receivers may provide features of their own. `DefaultAudioReceiver` provides events for users joining, leaving, starting to speak and falling silent as well as per-user audio streams with the received audio.
+
+
+For further details please see the dedicated article on [receiving](receiving.md)

@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -31,8 +30,6 @@ public sealed class OpusEncoder : IAudioEncoder
     {
         consumed = int.Min(pcm.Length, 960);
         return EncodeCore(MemoryMarshal.Cast<Int16x2, short>(pcm[..consumed]));
-
-        throw new UnreachableException("Invalid audio type. The audio type must be a defined enum value.");
     }
 
     /// <inheritdoc/>
@@ -40,8 +37,6 @@ public sealed class OpusEncoder : IAudioEncoder
     {
         consumed = int.Min(pcm.Length, 960);
         return EncodeCore(MemoryMarshal.Cast<Int32x2, int>(pcm[..consumed]));
-
-        throw new UnreachableException("Invalid audio type. The audio type must be a defined enum value.");
     }
 
     /// <inheritdoc/>
@@ -49,8 +44,6 @@ public sealed class OpusEncoder : IAudioEncoder
     {
         consumed = int.Min(pcm.Length, 960);
         return EncodeCore(MemoryMarshal.Cast<Singlex2, float>(pcm[..consumed]));
-
-        throw new UnreachableException("Invalid audio type. The audio type must be a defined enum value.");
     }
 
     /// <inheritdoc/>

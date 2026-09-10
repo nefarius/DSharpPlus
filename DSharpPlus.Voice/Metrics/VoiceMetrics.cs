@@ -55,6 +55,13 @@ public sealed class VoiceMetrics
         GlobalVoiceMeter.RecordEmptyAudioFrameReceived();
     }
 
+    internal void RecordAudioFrameDropped()
+    {
+        Interlocked.Increment(ref this.metrics.audioFramesDropped);
+
+        GlobalVoiceMeter.RecordAudioFrameDropped();
+    }
+
     internal void RecordKeepaliveSent()
     {
         Interlocked.Increment(ref this.metrics.keepalivesSent);
@@ -119,6 +126,7 @@ public sealed class VoiceMetrics
             AudioBytesReceived = this.metrics.audioBytesReceived,
             AudioFramesFailedDecryption = this.metrics.audioFramesFailedDecryption,
             EmptyAudioFramesReceived = this.metrics.emptyAudioFramesReceived,
+            AudioFramesDropped = this.metrics.audioFramesDropped,
             KeepalivesSent = this.metrics.keepalivesSent,
             KeepalivesReceived = this.metrics.keepalivesReceived,
             ControlPacketsSent = this.metrics.controlPacketsSent,
@@ -136,6 +144,7 @@ public sealed class VoiceMetrics
         public ulong audioBytesReceived;
         public int audioFramesFailedDecryption;
         public int emptyAudioFramesReceived;
+        public int audioFramesDropped;
         public int keepalivesSent;
         public int keepalivesReceived;
         public int controlPacketsSent;

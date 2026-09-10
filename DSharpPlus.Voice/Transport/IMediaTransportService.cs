@@ -13,7 +13,7 @@ public interface IMediaTransportService : IDisposable
     /// <summary>
     /// Connects to the specified remote endpoint.
     /// </summary>
-    public Task ConnectAsync(IPEndPoint endpoint);
+    public Task SetTargetAsync(IPEndPoint endpoint);
 
     /// <summary>
     /// Sends the buffer to the configured remote endpoint as a datagram.

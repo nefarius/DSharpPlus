@@ -88,14 +88,6 @@ internal static unsafe partial class OpusInterop
     [LibraryImport("opus")]
     private static partial int dsharpplus_opus_encoder_ctl_set_max_bandwidth(NativeOpusEncoder* encoder, OpusBandwidth bandwidth);
 
-        /// <summary>
-    /// <code>
-    /// <![CDATA[int dsharpplus_opus_encoder_ctl_set_max_bandwidth(OpusEncoder* encoder, int bandwidth);]]>
-    /// </code>
-    /// </summary>
-    [LibraryImport("opus")]
-    private static partial int dsharpplus_opus_encoder_ctl_set_bandwidth(NativeOpusEncoder* encoder, OpusBandwidth bandwidth);
-
     /// <summary>
     /// <code>
     /// <![CDATA[int dsharpplus_opus_encoder_ctl_set_in_band_fec(OpusEncoder* encoder, int fec);]]>

@@ -20,7 +20,7 @@ public interface ICryptorFactory
     public string SelectPreferredEncryptionMode(params IEnumerable<string> supportedEncryptionModes);
 
     /// <summary>
-    /// Gets the list of encryption modes supported by DSharpPlus.Voice.
+    /// Gets the list of encryption modes supported by this cryptor factory.
     /// </summary>
     public IReadOnlyList<string> SupportedEncryptionModes { get; }
 }

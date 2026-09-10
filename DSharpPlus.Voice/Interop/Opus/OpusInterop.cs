@@ -43,7 +43,7 @@ internal static unsafe partial class OpusInterop
     }
 
     public static void SetBandwidth(NativeOpusEncoder* encoder, OpusBandwidth bandwidth)
-        => _ = dsharpplus_opus_encoder_ctl_set_bandwidth(encoder, bandwidth);
+        => _ = dsharpplus_opus_encoder_ctl_set_max_bandwidth(encoder, bandwidth);
 
     /// <summary>
     /// Encodes a 20ms frame from the provided s16le pcm data into the target buffer.

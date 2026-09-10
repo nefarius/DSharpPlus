@@ -59,7 +59,7 @@ public readonly record struct AudioTimestamp
     /// <summary>
     /// Gets this timestamp expressed in total milliseconds.
     /// </summary>
-    public ulong TotalMilliseconds => this.ticks;
+    public ulong TotalMilliseconds => this.ticks / 48;
 
     /// <summary>
     /// Gets this timestamp expressed in total seconds.

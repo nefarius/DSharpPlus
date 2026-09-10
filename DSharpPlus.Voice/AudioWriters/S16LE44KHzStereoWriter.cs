@@ -41,7 +41,7 @@ internal sealed class S16LE44KHzStereoWriter : AbstractPcmAudioWriter
         ReadOnlySpan<short> submitted = MemoryMarshal.Cast<byte, short>(buffer.AsSpan()[..(length & 0b11)]);
         Span<short> resampled = resampledBuffer.AsSpan()[..1920];
 
-        while (this.resampler.ResampleFrame(submitted, resampled, out int consumed, out written))
+        while (this.resampler.ResampleFrameFrom44KHz(submitted, resampled, out int consumed, out written))
         {
             Debug.Assert(written == 1920);
 

@@ -53,6 +53,11 @@ public sealed record VoiceMetricsCollection
     public int EmptyAudioFramesReceived { get; internal init; }
 
     /// <summary>
+    /// The amount of audio frames we dropped upon receiving because the sending user was not yet known.
+    /// </summary>
+    public int AudioFramesDropped { get; internal init; }
+
+    /// <summary>
     /// The amount of control packets sent.
     /// </summary>
     public int ControlPacketsSent { get; internal init; }

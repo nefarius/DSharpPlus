@@ -104,7 +104,8 @@ partial class VoiceConnection
             if (!this.ssrcs.TryGetValue(frameInfo.SSRC, out userId))
             {
                 // race condition: we're still waiting on their ssrc but they already started speaking
-                // [TODO] consider buffering such received packets?
+                // consider buffering such received packets?
+                this.metrics.RecordAudioFrameDropped();
                 continue;
             }
 

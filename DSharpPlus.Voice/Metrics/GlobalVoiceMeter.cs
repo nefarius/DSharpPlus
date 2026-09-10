@@ -10,6 +10,7 @@ internal static class GlobalVoiceMeter
     private static readonly Counter<long> audioBytesReceived;
     private static readonly Counter<long> audioFramesFailedDecryption;
     private static readonly Counter<long> emptyAudioFramesReceived;
+    private static readonly Counter<long> audioFramesDropped;
     private static readonly Counter<long> keepalivesSent;
     private static readonly Counter<long> keepalivesReceived;
     private static readonly Counter<long> controlPacketsSent;
@@ -45,6 +46,7 @@ internal static class GlobalVoiceMeter
 
         audioFramesFailedDecryption = voiceMeter.CreateCounter<long>("dsharpplus.voice.audio_frames_failed_decryption");
         emptyAudioFramesReceived = voiceMeter.CreateCounter<long>("dsharpplus.voice.empty_audio_frames_received");
+        audioFramesDropped = voiceMeter.CreateCounter<long>("dsharpplus.voice.audio_frames_dropped");
         keepalivesSent = voiceMeter.CreateCounter<long>("dsharpplus.voice.keepalives_sent");
         keepalivesReceived = voiceMeter.CreateCounter<long>("dsharpplus.voice.keepalives_received");
         controlPacketsSent = voiceMeter.CreateCounter<long>("dsharpplus.voice.control_packets_sent");
@@ -71,6 +73,9 @@ internal static class GlobalVoiceMeter
 
     public static void RecordEmptyAudioFrameReceived() 
         => emptyAudioFramesReceived.Add(1);
+
+    public static void RecordAudioFrameDropped()
+        => audioFramesDropped.Add(1);
 
     public static void RecordKeepaliveSent()
     {

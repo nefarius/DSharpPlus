@@ -34,7 +34,7 @@ public readonly record struct AudioTimestamp
     /// <summary>
     /// Gets the milliseconds component of this timestamp.
     /// </summary>
-    public int Milliseconds => (int)(this.ticks % 48000);
+    public int Milliseconds => (int)(this.ticks / 48 % 1000);
 
     /// <summary>
     /// Gets the seconds component of this timestamp.

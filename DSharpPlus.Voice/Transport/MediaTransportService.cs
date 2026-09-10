@@ -26,8 +26,8 @@ public class MediaTransportService : IMediaTransportService
     public async Task ReceiveAsync(IBufferWriter<byte> bufferWriter)
     {
         UdpReceiveResult result = await this.udpClient.ReceiveAsync();
-        Memory<byte> dst = bufferWriter.GetMemory(result.Buffer.Length);
-        result.Buffer.AsSpan().CopyTo(dst.Span);
+        Memory<byte> destination = bufferWriter.GetMemory(result.Buffer.Length);
+        result.Buffer.AsSpan().CopyTo(destination.Span);
         bufferWriter.Advance(result.Buffer.Length);
     }
 
